@@ -7,6 +7,7 @@
 ##################################
 
 import sys
+import argparse 
 import gc
 import pysam
 import math
@@ -27,6 +28,38 @@ from sets import Set
 # 0x0200 512 the read fails platform/vendor quality checks
 # 0x0400 1024 the read is either a PCR duplicate or an optical duplicate
 # 0x0800 2048 supplementary alignment
+
+def parse_args():
+    parser=argparse.ArgumentParser(description="This script computes mapping statistics for an input aligned bam file.")
+    parser.add_argument("SAMFileName",
+                        type=str,
+                        required=True,
+                        help="Unsorted BAM file, direct output of alignment algorithm. Use '-' to read from stdin")
+    parser.add_argument("batchSize",
+                        type=int,
+                        required=True,
+                        help="Number of reads for which alignments will be stored in memory. Set this value to 1 if it is certain that the alignments are sorted by read ID ")
+    parser.add_argument("statsOutFilename",
+                        default=None,
+                        type=str
+                        help="File name to write summary statistics; Default is to print them to stdout")
+    parser.add_argument("addNH",
+                        action="store_true",
+                        default=False,
+                        help="adds NH tags to the output alignments")
+    parser.add_argument("doNotPrintAlignments",
+                        action="store_true",
+                        default=False)
+    parser.add_argument("minMAPQ",
+                        type=float,
+                        default=None,
+                        help="Minimum mapping quality. No quality filtering is performed if this argument is not provided.")
+    parser.add_argument("Ffilter",
+                        nargs="*",
+                        type=str,
+                        default=None,
+                        help="List of flags to filter out")
+    return parser.parse_args()
 
 def FLAG(FLAG):
 
@@ -52,41 +85,11 @@ def FLAG(FLAG):
   
     return FLAGDict
 
-def run():
-
-    if len(sys.argv) < 2:
-        print 'usage: python %s SAMfilename batchSize stats_out_filename [-addNH] [-doNotPrintAlignments] [-MAPQfilter minMAPQ] [-Ffilter FLAG]' % sys.argv[0]
-        print '\t!!!An unsorted BAM file, i.e. as it comes out of the aligner, is assumed!!!'
-        print '\tThe batchSize parameter refers to the number of reads for which the alignments will be stored in memory; this could be set to 1 if it certain that the alignments are sorted by read ID'
-        print '\tUse - for streaming from stdin, i.e. directly from the aligner'
-        print '\tthe script will print to stdout by default'
-        print '\tuse the [-addNH] option to add NH tags to the output alignments'
-        sys.exit(1)
-
-    SAM = sys.argv[1]
-    BS = int(sys.argv[2])
-    outfilename = sys.argv[3]
-
-    doAddNH = False
-    if '-addNH' in sys.argv:
-        doAddNH = True
-
-    doMF = False
-    if '-MAPQfilter' in sys.argv:
-        doMF = True
-        MAPQ = int(sys.argv[sys.argv.index('-MAPQfilter') + 1])
-
-    doFF = False
-    if '-Ffilter' in sys.argv:
-        doMF = True
-        FF = int(sys.argv[sys.argv.index('-Ffilter') + 1])
-
-    doPrint = True
-    if '-doNotPrintAlignments' in sys.argv:
-        doPrint = False
-
-    doStdIn = False
-
+def initializeOutputVars():
+    """
+    Initializes dictionaries to store read statistics
+    Returns: ReadStatsDict,ReadLengthDict,ComplexityDict,ComplexityChromosomesDict,UP,UR,M0,M1,M2
+    """
     ReadStatsDict = {}
     ReadStatsDict['proper_pairs'] = {}
     ReadStatsDict['proper_pairs']['all'] = {}
@@ -117,17 +120,51 @@ def run():
     ReadStatsDict['unspliced_reads']['all'][1] = 0
     ReadStatsDict['unspliced_reads']['after_filtering'] = {}
     ReadStatsDict['unspliced_reads']['after_filtering'][1] = 0
-
+    
     ReadLengthDict = {}
-
     ComplexityDict = {}
     ComplexityChromosomesDict = {}
     UP = 0.0
     UR = 0.0
     M0 = 0.0
     M1 = 0.0
-    M2 = 0.0
+    M2 = 0.0    
+    return ReadStatsDict,ReadLengthDict,ComplexityDict,ComplexityChromosomesDict,UP,UR,M0,M1,M2
 
+def main():
+    #Read in the arguments to the program from the argument parser
+    args=parse_args()
+    #determine whether the input comes from a SAM/BAM file or whether it should be read from stdin 
+    SAM=args.SAMFileName
+    if SAM=="-":
+        doStdIn=True
+    else:
+        doStdIn=False
+        
+    BS=args.batchSize
+    outfilename=args.statsOutFileName
+    doAddNH=args.doAddNH
+
+    #set optional quality and flag filtering 
+    if args.minMAPQ is None:
+        doMF=False
+    else:
+        doMF=True
+        MAPQ=args.minMAPQ
+        
+    if args.Ffilter is None:
+        doFF=False
+    else:
+        doFF=True
+        FF=args.Ffilter
+        
+    doPrint=args.doNotPrintAlignments
+
+    
+    #Initialize dictionaries and variables to store read summary statistics
+    ReadStatsDict,ReadLengthDict,ComplexityDict,ComplexityChromosomesDict,UP,UR,M0,M1,M2=initializeOutputVars() 
+
+    
 #    NR = 0
 
     if SAM != '-':
@@ -467,4 +504,6 @@ def run():
 
     outfile.close()
 
-run()
+if __name__=="__main__":
+    main()
+    
