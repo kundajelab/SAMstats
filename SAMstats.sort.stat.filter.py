@@ -186,8 +186,8 @@ def main():
     for chunk in pd.read_csv(sam, header=None, chunksize=args.chunk_size,delim_whitespace=True,comment='@',usecols=[0,1,4,6,9],engine='c'):
         for index,line in chunk.iterrows(): 
             #merge read name and read seq as filtering criterion, since mates for PE files are stored with the same read name on separate lines 
-            #if line_number % 10000==0: 
-            #    print(line_number) 
+            if line_number % 10000==0: 
+                print(line_number) 
             line_number+=1 
             new_seqid=line[0]+line[9]  
             flag=line[1] 
