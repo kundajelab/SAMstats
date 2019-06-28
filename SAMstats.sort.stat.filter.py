@@ -8,6 +8,7 @@ import argparse
 import pandas as pd 
 import numpy as np 
 import pdb 
+import line_profiler
 
 def parse_args(): 
     parser=argparse.ArgumentParser(description="Compute SAM file mapping statistics for a SAM file sorted by read name")
@@ -140,6 +141,7 @@ def update_flagstat_for_readname(global_flagstat, cur_flagstat):
     global_flagstat[1]+=cur_flagstat[1] 
     return global_flagstat
 
+#@profile
 def main(): 
     #read in the arguments 
     args=parse_args() 
@@ -178,22 +180,21 @@ def main():
     #    1 = FLAG,
     #    4 = MAPQ, 
     #    6 = RNEXT (reference name of the mate/next read) 
-    #    9 = SEQ
     #    
     # ignore all other columns 
     print("starting flag calculation...") 
     line_number=0
-    for chunk in pd.read_csv(sam, header=None, chunksize=args.chunk_size,delim_whitespace=True,comment='@',usecols=[0,1,4,6,9],engine='c'):
+    for chunk in pd.read_csv(sam, header=None, chunksize=args.chunk_size,comment='@',usecols=[0,1,4,6],engine='c', na_filter=False,sep='\t'):
         for index,line in chunk.iterrows(): 
             #merge read name and read seq as filtering criterion, since mates for PE files are stored with the same read name on separate lines 
             if line_number % 10000==0: 
                 print(line_number) 
-            line_number+=1 
-            new_seqid=line[0]+line[9]  
+            line_number+=1
             flag=line[1] 
             mapq=line[4]
             rnext=line[6] 
-
+            read1=str(flag & 0x40 == 0x40)
+            new_seqid=line[0]+read1
             #if "filter_before_start is specified, check to see if the readname has already been processed
             if (args.filter_before_stat is True) and (new_seqid == cur_seqid):
                 continue 
