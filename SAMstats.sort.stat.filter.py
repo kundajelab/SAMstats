@@ -10,7 +10,7 @@ import line_profiler
 
 def parse_args(): 
     parser=argparse.ArgumentParser(description="Compute SAM file mapping statistics for a SAM file sorted by read name")
-    parser.add_argument("--sorted_sam_file",help="Input SAM file. Use '-' if input is being piped from stdin. File must be sorted by read name.")
+    parser.add_argument("--sorted_sam_file",help="Input SAM file. Use '-' if input is being piped from stdin. File must be sorted by read name.",required=True)
     parser.add_argument("--outf",default=None,help="Output file name to store alignment statistics. The statistics will be printed to stdout if no file is provided") 
     parser.add_argument("--chunk_size",type=int,default=100000,help="Number of lines to read a time from sortedSamFile")
     parser.add_argument("--threads",type=int,default=1,help="number of threads to use")
