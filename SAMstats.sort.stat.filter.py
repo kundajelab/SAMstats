@@ -13,10 +13,9 @@ def parse_args():
     parser.add_argument("--sorted_sam_file",help="Input SAM file. Use '-' if input is being piped from stdin. File must be sorted by read name.",required=True)
     parser.add_argument("--outf",default=None,help="Output file name to store alignment statistics. The statistics will be printed to stdout if no file is provided") 
     parser.add_argument("--chunk_size",type=int,default=100000,help="Number of lines to read a time from sortedSamFile")
-    parser.add_argument("--threads",type=int,default=1,help="number of threads to use")
     return parser.parse_args()
 
-#@profile
+
 def write_output_file(outf,
                       stats,
                       global_flagstat,
@@ -52,7 +51,7 @@ def write_output_file(outf,
             print(outstring) 
         else: 
             outf.write(outstring+'\n') 
-#@profile
+
 def calculate_percent(field_index,global_flagstat):
     '''
     field_index = index (0 - 12) in the global_flagstat array indicating the number of reads for the field of interest. Refer to http://www.htslib.org/doc/samtools.html for field index ordering 
@@ -71,56 +70,43 @@ def calculate_percent(field_index,global_flagstat):
     return field_percent_qc_passed, field_percent_qc_failed 
 
 
-#@profile
 def add_read_stats(flag,mapq,rnext,cur_flagstat): 
     '''
     implements flagstat logic from http://www.htslib.org/doc/samtools.html to calculate each of the 13 flags
     also keep track of number of primary reads for calculating fraction of mapped reads in the global summary stats 
     '''
-    temp_flagstat=[0]*14
-    qc_passed = flag & 0x200 == 0    
-    secondary =  0x100 & flag == 0x100
-    supplementary = flag & 0x800 == 0x800
-    primary=flag & 0x800 == 0 
-    duplicates=flag & 0x400 == 0x400
-    mapped=flag & 0x4==0 
+    temp_flagstat=[]
+    qc_passed=flag & 0x200 == 0
+    temp_flagstat.append(qc_passed) #qc_passed
+    temp_flagstat.append(flag & 0x100 == 0x100) #secondary 
+    temp_flagstat.append(flag & 0x800 == 0x800) #supplementary 
+    temp_flagstat.append(flag & 0x400 == 0x400) #duplicates
+    temp_flagstat.append(flag & 0x4 == 0) #mapped
 
-    #note: it is not stated in the samtools documentation, but the paired read statistics are *only* computed for primary reads, so we add a check that primary==1 for all remaining stats 
-    paired_in_sequencing= (flag & 0x1 == 0x1) & (primary==1) 
-    read1=(flag & 0x1 == 0x1) & (flag & 0x40 == 0x40) & (primary==1)
-    read2=(flag & 0x1 == 0x1) & (flag & 0x80 == 0x80) & (primary==1)
-    properly_paired=(flag & 0x1==0x1) & (flag & 0x2==0x2) & (flag & 0x4==0) & (primary==1) 
-    with_itself_and_mate_mapped=(flag & 0x1==0x1) & (flag & 0x4==0) & (flag & 0x8==0) & (primary==1) 
-    singleton=(flag & 0x1==0x1) & (flag & 0x8==0x8) & (flag & 0x4==0) & (primary==1) 
-    with_mate_mapped_to_different_chrom=(flag & 0x1==0x1) & (flag & 0x4==0) & (flag & 0x8 ==0) & (primary==1) & (rnext !="=") 
-    with_mate_mapped_to_different_chrom_q5=with_mate_mapped_to_different_chrom & (mapq>=5)
-    
-    #populate the temp_flagstat array with flag values
-    temp_flagstat[0]=qc_passed
-    temp_flagstat[1]=secondary 
-    temp_flagstat[2]=supplementary 
-    temp_flagstat[3]=duplicates 
-    temp_flagstat[4]=mapped 
-    temp_flagstat[5]=paired_in_sequencing 
-    temp_flagstat[6]=read1
-    temp_flagstat[7]=read2
-    temp_flagstat[8]=properly_paired
-    temp_flagstat[9]=with_itself_and_mate_mapped
-    temp_flagstat[10]=singleton 
-    temp_flagstat[11]=with_mate_mapped_to_different_chrom
-    temp_flagstat[12]=with_mate_mapped_to_different_chrom_q5
-    temp_flagstat[13]=primary 
-    
+    #note: it is not stated in the samtools documentation, but the paired read statistics are *only* computed for primary reads, so we add a check that primary==1 for all remaining stats
+    primary= flag & 0x800 ==0  #primary
+    paired_in_sequencing= (flag & 0x1 == 0x1) & (primary==1)
+    temp_flagstat.append(paired_in_sequencing) #paired_in_sequencing 
+    temp_flagstat.append(paired_in_sequencing & (flag & 0x40 == 0x40)) #read1
+    temp_flagstat.append(paired_in_sequencing & (flag & 0x80 == 0x80)) #read2
+    temp_flagstat.append(paired_in_sequencing & (flag & 0x2==0x2) & (flag & 0x4==0)) #properly aligned 
+    with_itself_and_mate_mapped=(paired_in_sequencing & (flag & 0x4==0) & (flag & 0x8==0)) #with_itself_and_mate_mapped
+    temp_flagstat.append(with_itself_and_mate_mapped)
+    temp_flagstat.append(paired_in_sequencing & (flag & 0x8==0x8) & (flag & 0x4==0)) #singleton
+    with_mate_mapped_to_different_chrom=(with_itself_and_mate_mapped & (rnext !="="))
+    temp_flagstat.append(with_mate_mapped_to_different_chrom) #with_mate_mapped_to_different_chrom
+    temp_flagstat.append(with_mate_mapped_to_different_chrom & (mapq>=5)) #with_mate_mapped_to_different_chrom_q5
+    temp_flagstat.append(primary)
     #compute bitwise or of cur_flagstat and temp_flagstat to see if a flag is set for any of the alignments for the given read 
     #the first entry in cur_flagstat is the numpy array with stats for reads that pass qc; the second entry is the numpy array with stats for reads that fail qc 
     if qc_passed==True:
-        cur_flagstat[0]=max(cur_flagstat[0],temp_flagstat)
+        cur_flagstat[0]=[i|j for i,j in zip(cur_flagstat[0],temp_flagstat)]
     else:
-        cur_flagstat[1]=max(cur_flagstat[1],temp_flagstat)
+        cur_flagstat[1]=[i|j for i,j in zip(cur_flagstat[1],temp_flagstat)]
     return cur_flagstat
 
-#@profile
-def initialize_flagstat(stat): 
+
+def initialize_flagstat(): 
     '''
     numpy array of length 14 (for the 13 metrics in flagstat + one entry to keep track of primary reads) keeps track of number of reads that meet the criteria for each of the 13 statistics 
     numpy array initialized for qc_passed and qc_failed read subsets 
@@ -132,18 +118,20 @@ def initialize_flagstat(stat):
     flagstat=[qc_passed,qc_failed] 
     return flagstat
 
-#@profile
-def update_flagstat_for_readname(global_flagstat, cur_flagstat): 
+
+def update_flagstat_for_readname(global_flagstat, cur_flagstat_dict): 
     '''
     global_flagstat -- flagstat statistics for the full dataset 
-    cur_flagstat -- flagstat statistics for a fixed QNAME+SEQ
+    cur_flagstat -- flagstat statistics for a fixed QNAME+read1/read2 -- this is a dictionary of QNAME+read1/read2 for reads with same QNAME 
     This function  updates the global_flagstat arrays with the count of flag stats for a given QNAME +SEQ 
     '''
-    global_flagstat[0]=[i+j for i,j in zip(global_flagstat[0],cur_flagstat[0])]
-    global_flagstat[1]=[i+j for i,j in zip(global_flagstat[1],cur_flagstat[1])]
+    for qname in cur_flagstat_dict:
+        cur_flagstat=cur_flagstat_dict[qname]
+        global_flagstat[0]=[i+j for i,j in zip(global_flagstat[0],cur_flagstat[0])]
+        global_flagstat[1]=[i+j for i,j in zip(global_flagstat[1],cur_flagstat[1])]
     return global_flagstat
 
-#@profile
+
 def main(): 
     #read in the arguments 
     args=parse_args() 
@@ -168,13 +156,12 @@ def main():
            'with mate mapped to a different chr',
            'with mate mapped to a different chr q5']
 
-    global_flagstat=initialize_flagstat(stats) 
+    global_flagstat=initialize_flagstat() 
 
     #since sorted_sam_file is sorted with SO=queryname, we keep track of statistics for a given read name and merge with the larger dict when no further reads 
     #with that name are encountered 
-    cur_flagstat=initialize_flagstat(stats) 
-    cur_seqid=None
-    
+    cur_seq_id=None
+    cur_seq_tokens=dict() 
     #we read the input SAM file in chunks of size chunksize, iterating one line at a time 
     #skip comment lines in the header that start with @ 
     # use columns : 
@@ -182,7 +169,6 @@ def main():
     #    1 = FLAG,
     #    4 = MAPQ, 
     #    6 = RNEXT (reference name of the mate/next read) 
-    #    9 = SEQ 
     # ignore all other columns 
     print("starting flag calculation...") 
     line_number=0
@@ -201,24 +187,24 @@ def main():
             flag=int(tokens[1]) 
             mapq=int(tokens[4])
             rnext=tokens[6] 
-            seq=tokens[9] 
-            new_seqid=tokens[0]+seq
-            #read1=str(flag & 0x40 == 0x40)
-            #new_seqid=tokens[0]+read1
+            new_seq_id=tokens[0]
+            read2=str(flag & 0x80==0x80)
+            new_seq_id_expanded=tokens[0]+read2    
 
-            if new_seqid!=cur_seqid: 
+            if new_seq_id!=cur_seq_id: 
                 #we are finished processing the readname "cur_ID", updated the global flag statistics for full dataset with statistics for this read 
-                global_flagstat=update_flagstat_for_readname(global_flagstat,cur_flagstat) 
+                global_flagstat=update_flagstat_for_readname(global_flagstat,cur_seq_tokens) 
                 #reinitialize read-specific flagstat for current read name 
-                cur_flagstat=initialize_flagstat(stats) 
-
-            #identify flagstat values for current read 
-            cur_flagstat=add_read_stats(flag,mapq,rnext,cur_flagstat)
-            cur_seqid=new_seqid
+                cur_seq_tokens=dict()
+            if new_seq_id_expanded not in cur_seq_tokens:
+                cur_seq_tokens[new_seq_id_expanded]=initialize_flagstat()
+            cur_seq_tokens[new_seq_id_expanded]=add_read_stats(flag,mapq,rnext,cur_seq_tokens[new_seq_id_expanded])
+            #update cur_seq_id to reflect the new_seq_id we have observed 
+            cur_seq_id=new_seq_id
         
         
     #we have parsed all the reads in the file
-    global_flagstat=update_flagstat_for_readname(global_flagstat,cur_flagstat) 
+    global_flagstat=update_flagstat_for_readname(global_flagstat,cur_seq_tokens) 
     #calculate % mapped, properly paired, singletons from total primary reads 
     #note: 4, 8, 10 are the numpy array indices in global_flagstat where the counts for these fields are stored 
     print("finished parsing lines, summarizing...") 
