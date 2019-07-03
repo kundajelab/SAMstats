@@ -6,7 +6,8 @@ import argparse
 import pdb 
 import line_profiler
 import multiprocessing as mp
-from multiprocessing.pool import ThreadPool
+import threading
+#from multiprocessing.pool import ThreadPool
 
 #13 stats that flagstats reports
 # the order of the stat in the global_flagstat and cur_flagstat arrays matches the order of the stats list 
@@ -24,7 +25,7 @@ stats=['total',
        'with mate mapped to a different chr',
        'with mate mapped to a different chr q5']
 
-
+#@profile
 def parse_args(): 
     parser=argparse.ArgumentParser(description="Compute SAM file mapping statistics for a SAM file sorted by read name")
     parser.add_argument("--sorted_sam_file",help="Input SAM file. Use '-' if input is being piped from stdin. File must be sorted by read name.",required=True)
@@ -34,7 +35,7 @@ def parse_args():
     return parser.parse_args()
 
 
-
+#@profile
 def write_output_file(outf,
                       stats,
                       global_flagstat,
@@ -70,7 +71,7 @@ def write_output_file(outf,
             print(outstring) 
         else: 
             outf.write(outstring+'\n') 
-    
+#@profile
 def calculate_percent(field_index,global_flagstat):
     '''
     field_index = index (0 - 12) in the global_flagstat array indicating the number of reads for the field of interest. Refer to http://www.htslib.org/doc/samtools.html for field index ordering 
@@ -87,7 +88,7 @@ def calculate_percent(field_index,global_flagstat):
     if qc_failed_primary > 0: 
         field_percent_qc_failed=round(qc_failed_field/qc_failed_primary,3) 
     return field_percent_qc_passed, field_percent_qc_failed 
-
+#@profile
 def add_read_stats(flag,mapq,rnext,cur_flagstat): 
     '''
     implements flagstat logic from http://www.htslib.org/doc/samtools.html to calculate each of the 13 flags
@@ -123,7 +124,7 @@ def add_read_stats(flag,mapq,rnext,cur_flagstat):
         cur_flagstat[1]=[i|j for i,j in zip(cur_flagstat[1],temp_flagstat)]
     return cur_flagstat
 
-
+#@profile
 def initialize_flagstat(stat): 
     '''
     numpy array of length 14 (for the 13 metrics in flagstat + one entry to keep track of primary reads) keeps track of number of reads that meet the criteria for each of the 13 statistics 
@@ -136,7 +137,7 @@ def initialize_flagstat(stat):
     flagstat=[qc_passed,qc_failed] 
     return flagstat 
 
-
+#@profile
 def update_flagstat_for_readname(global_flagstat, cur_flagstat): 
     '''
     global_flagstat -- flagstat statistics for the full dataset 
@@ -147,12 +148,13 @@ def update_flagstat_for_readname(global_flagstat, cur_flagstat):
     global_flagstat[1]=[i+j for i,j in zip(global_flagstat[1],cur_flagstat[1])]
     return global_flagstat
 
-def read_group_stats(input_q,output_q):
+#@profile
+def read_group_stats(input_q,output_q,i):
     '''
     pulls a read group from input_q with same seq_id, calculates flagstat for reads in the group, 
     flagstat statistics are added to output_q
     '''
-    
+    print(i)
     while True:
         seqs=input_q.get()
         if seqs is None:
@@ -166,8 +168,8 @@ def read_group_stats(input_q,output_q):
                 cur_flagstat=add_read_stats(flag,mapq,rnext,cur_flagstat)
             output_q.put(cur_flagstat)
 
-
-def aggregate_read_groups(outf):
+#@profile
+def aggregate_read_groups(output_q,outf):
     '''
     aggregates flag stats for unique reads to a single list 
     writes output file 
@@ -195,7 +197,7 @@ def aggregate_read_groups(outf):
             #we are finished processing the readname "cur_ID", updated the global flag statistics for full dataset with statistics for this read 
             global_flagstat=update_flagstat_for_readname(global_flagstat,cur_flagstat) 
 
-
+#@profile
 def main(): 
     #read in the arguments 
     args=parse_args() 
@@ -205,12 +207,20 @@ def main():
     else:
         sam=open(args.sorted_sam_file,'r') 
     
-    
+    #create the input/output queues for multi-threading
+    input_q=mp.Queue()
+    output_q=mp.Queue() 
+
     #initialize the worker threads that calculate flagstat statistics for each read group (i.e. alignments with the same readname + sequence)
-    worker_pool=ThreadPool(args.threads)
-    worker_pool.map(read_group_stats,input_q,output_q)
-    aggregator_pool=ThreadPool(1)
-    aggregator_pool.map(aggregate_read_groups,[args.outf])
+    workers=[]
+    for i in range(args.threads):
+        worker=threading.Thread(target=read_group_stats,args=(input_q, output_q,i))
+        worker.start() 
+        workers.append(worker)
+        
+    #start the aggregator -- sums flagstat statistics for unique read groups 
+    aggregator=threading.Thread(target=aggregate_read_groups,args=(output_q,args.outf))
+    aggregator.start() 
     
     #since sorted_sam_file is sorted with SO=queryname, we keep track of statistics for a given read name and merge with the larger dict when no further reads 
     #with that name are encountered
@@ -274,15 +284,11 @@ def main():
         input_q.put(None)
         
     #we are finished, join the worker and aggregator processes
-    worker_pool.close()
-    worker_pool.join()
-    output_q.put(None)
-    aggregator_pool.close()
-    aggregator_pool.join() 
+    for worker in workers: 
+        worker.join()
+    output_q.put(None) 
+    aggregator.join()
 
 
-if __name__=="__main__":
-    #create the input/output queues for multi-threading
-    input_q=mp.Queue()
-    output_q=mp.Queue() 
+if __name__=="__main__": 
     main() 

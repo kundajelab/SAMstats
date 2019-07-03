@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument("--threads",type=int,default=1,help="number of threads to use")
     return parser.parse_args()
 
-
+#@profile
 def write_output_file(outf,
                       stats,
                       global_flagstat,
@@ -52,7 +52,7 @@ def write_output_file(outf,
             print(outstring) 
         else: 
             outf.write(outstring+'\n') 
-    
+#@profile
 def calculate_percent(field_index,global_flagstat):
     '''
     field_index = index (0 - 12) in the global_flagstat array indicating the number of reads for the field of interest. Refer to http://www.htslib.org/doc/samtools.html for field index ordering 
@@ -117,7 +117,8 @@ def add_read_stats(flag,mapq,rnext,cur_flagstat):
         cur_flagstat[0]=max(cur_flagstat[0],temp_flagstat)
     else:
         cur_flagstat[1]=max(cur_flagstat[1],temp_flagstat)
-    return cur_flagstat 
+    return cur_flagstat
+
 #@profile
 def initialize_flagstat(stat): 
     '''
@@ -129,7 +130,8 @@ def initialize_flagstat(stat):
     qc_passed=[0]*14
     qc_failed=[0]*14
     flagstat=[qc_passed,qc_failed] 
-    return flagstat 
+    return flagstat
+
 #@profile
 def update_flagstat_for_readname(global_flagstat, cur_flagstat): 
     '''
