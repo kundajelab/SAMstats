@@ -32,13 +32,13 @@ fi
 #The first row of output gives the total number of reads that are QC pass and fail (according to flag bit 0x200). For example:
 #read2
 qcPassed_read2=`samtools view -F 0x200 -f 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l` 
-echo "qcPassed_read1:$qcPassed_read2"
+echo "qcPassed_read2:$qcPassed_read2"
 qcFailed_read2=`samtools view -f 0x200 -f 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l` 
-echo "qcFailed:$qcFailed_read2"
+echo "qcFailed_read2:$qcFailed_read2"
 qcPassed_read1=`samtools view -F 0x200 -F 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l` 
-echo "qcPassed_read2:$qcPassed_read1"
+echo "qcPassed_read1:$qcPassed_read1"
 qcFailed_read1=`samtools view -f 0x200 -F 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l` 
-echo "qcFailed:$qcFailed_read1"
+echo "qcFailed_read1:$qcFailed_read1"
 qcPassed=$(( $qcPassed_read2 + $qcPassed_read1 ))
 echo $qcPassed
 qcFailed=$(( $qcFailed_read2 + $qcFailed_read1 ))
@@ -46,11 +46,11 @@ echo $qcFailed
 
 #secondary, 0x100 bit set 
 secondary_qcPassed_read2=`samtools view -F 0x200 -f 0x100 -f 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l `
-echo "secondary_qcPassed_read2:$secondary_qcPassed"
+echo "secondary_qcPassed_read2:$secondary_qcPassed_read2"
 secondary_qcFailed_read2=`samtools view -f 0x200 -f 0x100 -f 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l `
 echo "secondary_qcFailed_read2:$secondary_qcFailed_read2"
 secondary_qcPassed_read1=`samtools view -F 0x200 -f 0x100 -F 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l `
-echo "secondary_qcPassed_read1:$secondary_qcPassed"
+echo "secondary_qcPassed_read1:$secondary_qcPassed_read1"
 secondary_qcFailed_read1=`samtools view -f 0x200 -f 0x100 -F 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l `
 echo "secondary_qcFailed_read1:$secondary_qcFailed_read1"
 secondary_qcPassed=$(( $secondary_qcPassed_read2 + $secondary_qcPassed_read1))
