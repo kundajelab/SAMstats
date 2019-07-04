@@ -49,12 +49,10 @@ secondary_qcPassed_read2=`samtools view -F 0x200 -f 0x100 -f 0x80 $sorted_bam | 
 echo "secondary_qcPassed_read2:$secondary_qcPassed"
 secondary_qcFailed_read2=`samtools view -f 0x200 -f 0x100 -f 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l `
 echo "secondary_qcFailed_read2:$secondary_qcFailed_read2"
-
 secondary_qcPassed_read1=`samtools view -F 0x200 -f 0x100 -F 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l `
 echo "secondary_qcPassed_read1:$secondary_qcPassed"
 secondary_qcFailed_read1=`samtools view -f 0x200 -f 0x100 -F 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l `
 echo "secondary_qcFailed_read1:$secondary_qcFailed_read1"
-
 secondary_qcPassed=$(( $secondary_qcPassed_read2 + $secondary_qcPassed_read1))
 echo $secondary_qcPassed
 secondary_qcFailed=$(( $secondary_qcFailed_read2 + $secondary_qcFailed_read1))
@@ -100,8 +98,8 @@ echo "duplicates_qcPassed_read1:$duplicates_qcPassed_read1"
 duplicates_qcFailed_read1=`samtools view -f 0x200 -f 0x400 -F 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l `
 echo "duplicates_qcFailed_read1:$duplicates_qcFailed_read1"
 duplicates_qcPassed=$(( $duplicates_qcPassed_read2 + $duplicates_qcPassed_read1))
-duplicates_qcFailed=$(( $duplicates_qcFailed_read2 + $duplicates_qcFailed_read1))
 echo $duplicates_qcPassed
+duplicates_qcFailed=$(( $duplicates_qcFailed_read2 + $duplicates_qcFailed_read1))
 echo $duplicates_qcFailed
 
 #mapped, 0x4 bit not set
@@ -109,14 +107,13 @@ mapped_qcPassed_read2=`samtools view -F 0x200 -F 0x4 -f 0x80 $sorted_bam | cut -
 echo "mapped_qcPassed_read2:$mapped_qcPassed_read2"
 mapped_qcFailed_read2=`samtools view -f 0x200 -F 0x4 -f 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l `
 echo "mapped_qcFailed_read2:$mapped_qcFailed_read2"
-
 mapped_qcPassed_read1=`samtools view -F 0x200 -F 0x4 -F 0x80 $sorted_bam | cut -f1 | sort | uniq |  wc -l `
 echo "mapped_qcPassed_read1:$mapped_qcPassed_read1"
 mapped_qcFailed_read1=`samtools view -f 0x200 -F 0x4 -F 0x80 $sorted_bam | cut -f1 | sort | uniq | wc -l `
 echo "mapped_qcFailed_read1:$mapped_qcFailed_read1"
 mapped_qcPassed=$(( $mapped_qcPassed_read2 + $mapped_qcPassed_read1))
-mapped_qcFailed=$(( $mapped_qcFailed_read2 + $mapped_qcFailed_read1))
 echo $mapped_qcPassed
+mapped_qcFailed=$(( $mapped_qcFailed_read2 + $mapped_qcFailed_read1))
 echo $mapped_qcFailed
 
 #paired in sequencing, 0x1 bit set
@@ -129,8 +126,8 @@ echo "pairedInSequencing_qcPassed_read1:$pairedInSequencing_qcPassed_read1"
 pairedInSequencing_qcFailed_read1=`samtools view -f 0x200 -F 0x800 -f 0x1 -F 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l `
 echo "pairedInSequencing_qcFailed_read1:$pairedInSequencing_qcFailed_read1"
 pairedInSequencing_qcPassed=$(( $pairedInSequencing_qcPassed_read2 + $pairedInSequencing_qcPassed_read1))
-pairedInSequencing_qcFailed=$(( $pairedInSequencing_qcFailed_read2 + $pairedInSequencing_qcFailed_read1))
 echo $pairedInSequencing_qcPassed
+pairedInSequencing_qcFailed=$(( $pairedInSequencing_qcFailed_read2 + $pairedInSequencing_qcFailed_read1))
 echo $pairedInSequencing_qcFailed
 
 #read1, both 0x1 and 0x40 bits set
@@ -154,8 +151,8 @@ echo "properlyPaired_qcPassed_read1:$properlyPaired_qcPassed_read1"
 properlyPaired_qcFailed_read1=`samtools view -f 0x200 -f 0x1 -f 0x2 -F 0x4 -F 0x800 -F 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l `
 echo "properlyPaired_qcFailed_read1:$properlyPaired_qcFailed_read1"
 properlyPaired_qcPassed=$(( $properlyPaired_qcPassed_read2 + $properlyPaired_qcPassed_read1))
-properlyPaired_qcFailed=$(( $properlyPaired_qcFailed_read2 + $properlyPaired_qcFailed_read1))
 echo $properlyPaired_qcPassed
+properlyPaired_qcFailed=$(( $properlyPaired_qcFailed_read2 + $properlyPaired_qcFailed_read1))
 echo $properlyPaired_qcFailed
 
 
@@ -169,8 +166,8 @@ echo "withItselfAndMateMapped_qcPassed_read1:$withItselfAndMateMapped_qcPassed_r
 withItselfAndMateMapped_qcFailed_read1=`samtools view -f 0x200 -f 0x1 -F 0x4 -F 0x8 -F 0x800 -F 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l `
 echo "withItselfAndMateMapped_qcFailed_read1:$withItselfAndMateMapped_qcFailed_read1"
 withItselfAndMateMapped_qcPassed=$(( $withItselfAndMateMapped_qcPassed_read2 + $withItselfAndMateMapped_qcPassed_read1))
-withItselfAndMateMapped_qcFailed=$(( $withItselfAndMateMapped_qcFailed_read2 + $withItselfAndMateMapped_qcFailed_read1))
 echo $withItselfAndMateMapped_qcPassed
+withItselfAndMateMapped_qcFailed=$(( $withItselfAndMateMapped_qcFailed_read2 + $withItselfAndMateMapped_qcFailed_read1))
 echo $withItselfAndMateMapped_qcFailed 
 
 #singletons, both 0x1 and 0x8 bits set and bit 0x4 not set
@@ -183,8 +180,8 @@ echo "singletons_qcPassed_read1:$singletons_qcPassed_read1"
 singletons_qcFailed_read1=`samtools view -f 0x200 -f 0x1 -f 0x8 -F 0x4 -F 0x800 -F 0x80 $sorted_bam | cut -f1 | sort |uniq | wc -l `
 echo "singletons_qcFailed_read1:$singletons_qcFailed_read1"
 singletons_qcPassed=$(( $singletons_qcPassed_read2 + $singletons_qcPassed_read1))
-singletons_qcFailed=$(( $singletons_qcFailed_read2 + $singletons_qcFailed_read1))
 echo $singletons_qcPassed
+singletons_qcFailed=$(( $singletons_qcFailed_read2 + $singletons_qcFailed_read1))
 echo $singletons_qcFailed 
 
 #And finally, two rows are given that additionally filter on the reference name (RNAME), mate reference name (MRNM), and mapping quality (MAPQ) fields:
@@ -198,8 +195,8 @@ echo "withMateMappedToDiffChrom_qcPassed_read1:$withMateMappedToDiffChrom_qcPass
 withMateMappedToDiffChrom_qcFailed_read1=`samtools view -f 0x200 -f 0x1 -F 0x4 -F 0x8 -F 0x800 -f 0x80 $sorted_bam |awk '{ if ($7 != "=") { print } }'| cut -f1 | sort |uniq  | wc -l `
 echo "withMateMappedToDiffChrom_qcFailed_read1:$withMateMappedToDiffChrom_qcFailed_read1"
 withMateMappedToDiffChrom_qcPassed=$(( $withMateMappedToDiffChrom_qcPassed_read2 + $withMateMappedToDiffChrom_qcPassed_read1))
-withMateMappedToDiffChrom_qcFailed=$(( $withMateMappedToDiffChrom_qcFailed_read2 + $withMateMappedToDiffChrom_qcFailed_read1))
 echo $withMateMappedToDiffChrom_qcPassed
+withMateMappedToDiffChrom_qcFailed=$(( $withMateMappedToDiffChrom_qcFailed_read2 + $withMateMappedToDiffChrom_qcFailed_read1))
 echo $withMateMappedToDiffChrom_qcFailed
 
 #with mate mapped to a different chr (mapQ>=5), 0x1 bit set and neither 0x4 nor 0x8 bits set and MRNM not equal to RNAME and MAPQ >= 5
@@ -212,8 +209,8 @@ echo "withMateMappedToDiffChromQC5_qcPassed_read1:$withMateMappedToDiffChromQC5_
 withMateMappedToDiffChromQC5_qcFailed_read1=`samtools view -f 0x200 -F 0x4 -F 0x800 -F 0x80 -q5 $sorted_bam | awk '{ if ($7 != "=") { print } }'|cut -f1 | sort |uniq  | wc -l `
 echo "withMateMappedToDiffChromQC5_qcFailed_read1:$withMateMappedToDiffChromQC5_qcFailed_read1"
 withMateMappedToDiffChromQC5_qcPassed=$(( $withMateMappedToDiffChromQC5_qcPassed_read2 + $withMateMappedToDiffChromQC5_qcPassed_read1))
-withMateMappedToDiffChromQC5_qcFailed=$(( $withMateMappedToDiffChromQC5_qcFailed_read2 + $withMateMappedToDiffChromQC5_qcFailed_read1))
 echo $withMateMappedToDiffChromQC5_qcPassed
+withMateMappedToDiffChromQC5_qcFailed=$(( $withMateMappedToDiffChromQC5_qcFailed_read2 + $withMateMappedToDiffChromQC5_qcFailed_read1))
 echo $withMateMappedToDiffChromQC5_qcFailed
 
 #Get fractions of mapped, paired, singletons relative to the total (this is provided in the original FlagStat output, so we provide it here)
