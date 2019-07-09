@@ -6,7 +6,6 @@
 import sys 
 import argparse 
 import pdb 
-import line_profiler
 
 def parse_args(): 
     parser=argparse.ArgumentParser(description="Compute SAM file mapping statistics for a SAM file sorted by read name")

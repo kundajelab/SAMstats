@@ -4,7 +4,6 @@
 import sys 
 import argparse 
 import pdb 
-import line_profiler
 import multiprocessing as mp
 import threading
 #from multiprocessing.pool import ThreadPool
