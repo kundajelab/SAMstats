@@ -13,7 +13,8 @@ import pysam
 import math
 import string
 import os
-from sets import Set
+#from sets import Set
+import pandas as pd 
 
 # FLAG field meaning
 # 0x0001 1 the read is paired in sequencing, no matter whether it is mapped in a pair
@@ -31,34 +32,13 @@ from sets import Set
 
 def parse_args():
     parser=argparse.ArgumentParser(description="This script computes mapping statistics for an input aligned bam file.")
-    parser.add_argument("SAMFileName",
-                        type=str,
-                        required=True,
-                        help="Unsorted BAM file, direct output of alignment algorithm. Use '-' to read from stdin")
-    parser.add_argument("batchSize",
-                        type=int,
-                        required=True,
-                        help="Number of reads for which alignments will be stored in memory. Set this value to 1 if it is certain that the alignments are sorted by read ID ")
-    parser.add_argument("statsOutFilename",
-                        default=None,
-                        type=str
-                        help="File name to write summary statistics; Default is to print them to stdout")
-    parser.add_argument("addNH",
-                        action="store_true",
-                        default=False,
-                        help="adds NH tags to the output alignments")
-    parser.add_argument("doNotPrintAlignments",
-                        action="store_true",
-                        default=False)
-    parser.add_argument("minMAPQ",
-                        type=float,
-                        default=None,
-                        help="Minimum mapping quality. No quality filtering is performed if this argument is not provided.")
-    parser.add_argument("Ffilter",
-                        nargs="*",
-                        type=str,
-                        default=None,
-                        help="List of flags to filter out")
+    parser.add_argument("-SAMFileName",type=str,help="Unsorted BAM file, direct output of alignment algorithm. Use '-' to read from stdin")
+    parser.add_argument("-batchSize",type=int,help="Number of reads for which alignments will be stored in memory. Set this value to 1 if it is certain that the alignments are sorted by read ID ")
+    parser.add_argument("-statsOutFileName",default=None,type=str,help="File name to write summary statistics; Default is to print them to stdout")
+    parser.add_argument("--addNH",action="store_true",default=False,help="adds NH tags to the output alignments")
+    parser.add_argument("--doNotPrintAlignments",action="store_true",default=False)
+    parser.add_argument("--minMAPQ",type=float,default=None,help="Minimum mapping quality. No quality filtering is performed if this argument is not provided.")
+    parser.add_argument("--Ffilter",nargs="*",type=str,default=None,help="List of flags to filter out")
     return parser.parse_args()
 
 def FLAG(FLAG):
@@ -132,19 +112,18 @@ def initializeOutputVars():
     return ReadStatsDict,ReadLengthDict,ComplexityDict,ComplexityChromosomesDict,UP,UR,M0,M1,M2
 
 def main():
+    
     #Read in the arguments to the program from the argument parser
     args=parse_args()
+
     #determine whether the input comes from a SAM/BAM file or whether it should be read from stdin 
     SAM=args.SAMFileName
     if SAM=="-":
-        doStdIn=True
-    else:
-        doStdIn=False
+        SAM=sys.stdin
         
     BS=args.batchSize
     outfilename=args.statsOutFileName
-    doAddNH=args.doAddNH
-
+    doAddNH=args.addNH
     #set optional quality and flag filtering 
     if args.minMAPQ is None:
         doMF=False
@@ -158,47 +137,23 @@ def main():
         doFF=True
         FF=args.Ffilter
         
-    doPrint=args.doNotPrintAlignments
-
+    doPrint= not args.doNotPrintAlignments
     
     #Initialize dictionaries and variables to store read summary statistics
     ReadStatsDict,ReadLengthDict,ComplexityDict,ComplexityChromosomesDict,UP,UR,M0,M1,M2=initializeOutputVars() 
 
-    
-#    NR = 0
-
-    if SAM != '-':
-        if SAM.endswith('.bz2'):
-            cmd = 'bzip2 -cd ' + SAM
-        elif SAM.endswith('.gz') or SAM.endswith('.bgz'):
-            cmd = 'zcat ' + SAM
-        else:
-            cmd = 'cat ' + SAM
-        p = os.popen(cmd, "r")
-    else:
-        doStdIn = True
-    line = 'line'
-    AlignmentDict = {}
-    EOF = False
-    while line != '':
-        if doStdIn:
-            line = sys.stdin.readline()
-        else:
-            line = p.readline()
-        if line == '':
-            EOF = True
-        if line.startswith('@'):
-            if doPrint:
-                print line.strip()
-            continue
-#        NR += 1
-        if line != '':
-            fields = line.split('\t')
-            ID = fields[0]
+    #parse through the input SAM file (or stdin), grabbing one batch of size BS at a time 
+    for batch in pd.read_csv(SAM, header=None, chunksize=BS,sep='\t'):
+        for index,row in batch.iterrows():
+            if row[0].startswith('@'):
+                if doPrint:
+                    print(row)
+                continue
+            ID = row[0]
             if AlignmentDict.has_key(ID):
                 pass
             else:
-                AlignmentDict[ID] = []
+                AlignmentDict[ID] = [row]
             AlignmentDict[ID].append(line.strip())
         if len(AlignmentDict.keys()) == BS or EOF:
 #            print NR, 'alignments processed'
