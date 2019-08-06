@@ -3,7 +3,7 @@ from setuptools import setup,find_packages
 config = {
     'include_package_data': True,
     'description': 'SAM file alignment statistics at the read level',
-    'version': '0.21',
+    'version': '0.2.1',
     'packages': ['SAMstats','SAMstatsParallel'],
     'setup_requires': [],
     'install_requires': ['multiprocess'],
