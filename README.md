@@ -9,7 +9,7 @@ Scripts that implement samtools flagstat functionality, but provide statistics f
 
 #### multithreaded version: 
 ```
-python SAMstats.sort.stat.filter.parallelized.thread.py \
+SAMstatsParallel \
   --sorted_sam_file examples/wgs_bam_NA12878_20k_b37_NA12878.sam \
   --outf stats.parallel.txt \
   --chunk_size 1000  \
@@ -17,7 +17,7 @@ python SAMstats.sort.stat.filter.parallelized.thread.py \
 ```
 #### singlethreaded version: 
 ```
-python SAMstats.sort.stat.filter.py \
+SAMstats \
   --sorted_sam_file examples/wgs_bam_NA12878_20k_b37_NA12878.sam \
   --outf stats.txt \
   --chunk_size 1000 
