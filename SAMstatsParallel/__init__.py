@@ -81,10 +81,10 @@ def calculate_percent(field_index,global_flagstat):
     qc_failed_field=global_flagstat[1][field_index] 
     field_percent_qc_passed="NA" 
     if qc_passed_primary >0: 
-        field_percent_qc_passed=round(qc_passed_field/qc_passed_primary,3) 
+        field_percent_qc_passed=round(float(qc_passed_field)/qc_passed_primary,3) 
     field_percent_qc_failed="NA" 
     if qc_failed_primary > 0: 
-        field_percent_qc_failed=round(qc_failed_field/qc_failed_primary,3) 
+        field_percent_qc_failed=round(float(qc_failed_field)/qc_failed_primary,3) 
     return field_percent_qc_passed, field_percent_qc_failed 
 
 def add_read_stats(flag,mapq,rnext,cur_flagstat): 
